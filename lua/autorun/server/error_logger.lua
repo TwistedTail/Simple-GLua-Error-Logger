@@ -111,22 +111,27 @@ hook.Add("Initialize", Identifier, function()
 	hook.Remove("Initialize", Identifier)
 end)
 
-hook.Add("LuaError", Identifier, function(_, Error, File, _, _, Stack)
+local function FullError(Error, Stack)
 	for k, v in ipairs(Stack) do
 		if k > 1 then
-			Error = Error .. string.format("\n%s%s. %s - %s:%s", string.rep("  ", k - 1), k - 1, v.name ~= "" and v.name or "unknown", v.short_src, v.currentline)
+			local StackNum = k - 1
+			local Indent = string.rep("  ", StackNum)
+			local FuncName = v.name ~= "" and v.name or "unknown"
+			Error = Error .. string.format("\n%s%s. %s - %s:%s", Indent, StackNum, FuncName, v.short_src, v.currentline)
 		end
 	end
+
+	return Error
+end
+
+hook.Add("LuaError", Identifier, function(_, Error, File, _, _, Stack)
+	Error = FullError(Error, Stack)
 
 	SaveError(File, "server", Error)
 end)
 
 hook.Add("ClientLuaError", Identifier, function(_, Error, File, _, _, Stack)
-	for k, v in ipairs(Stack) do
-		if k > 1 then
-			Error = Error .. string.format("\n%s%s. %s - %s:%s", string.rep("  ", k - 1), k - 1, v.name ~= "" and v.name or "unknown", v.short_src, v.currentline)
-		end
-	end
+	Error = FullError(Error, Stack)
 
 	SaveError(File, "client", Error)
 end)
